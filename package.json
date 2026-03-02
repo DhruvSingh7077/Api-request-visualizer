@@ -1,0 +1,258 @@
+{
+  "name": "flow-visualizer",
+  "displayName": "Flow Visualizer",
+  "description": "Automatically visualize API request flows, middleware chains, and architecture in Express, NestJS, and Next.js projects",
+  "version": "1.0.0",
+  "publisher": "DhruvSingh7077",
+  "icon": "media/icon.png",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Visualization",
+    "Documentation",
+    "Developer Tools"
+  ],
+  "keywords": [
+    "architecture",
+    "api",
+    "flow",
+    "diagram",
+    "visualization",
+    "express",
+    "nestjs",
+    "nextjs",
+    "routes",
+    "middleware",
+    "request-flow",
+    "api-visualization"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DhruvSingh7077/Api-request-visualizer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/DhruvSingh7077/Api-request-visualizer/issues"
+  },
+  "homepage": "https://github.com/DhruvSingh7077/Api-request-visualizer#readme",
+  "license": "MIT",
+  "author": {
+    "name": "Dhruv Singh",
+    "email": "dhruv@example.com"
+  },
+  "activationEvents": [
+    "onCommand:flow-visualizer.analyze",
+    "onCommand:flow-visualizer.analyzeFile",
+    "onCommand:flow-visualizer.showOverview",
+    "onCommand:flow-visualizer.showFlow",
+    "onCommand:flow-visualizer.export",
+    "onCommand:flow-visualizer.openDocs",
+    "onView:flow-visualizer.sidebar"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "flow-visualizer.analyze",
+        "title": "Flow Visualizer: Analyze Project",
+        "description": "Analyze your project and generate flow documentation",
+        "category": "Flow Visualizer",
+        "icon": "$(debug-start)"
+      },
+      {
+        "command": "flow-visualizer.analyzeFile",
+        "title": "Flow Visualizer: Analyze This File",
+        "description": "Analyze specific file routes and flows",
+        "category": "Flow Visualizer",
+        "icon": "$(file)"
+      },
+      {
+        "command": "flow-visualizer.showOverview",
+        "title": "Flow Visualizer: Show Architecture Overview",
+        "description": "Display architecture overview panel",
+        "category": "Flow Visualizer",
+        "icon": "$(symbol-class)"
+      },
+      {
+        "command": "flow-visualizer.showFlow",
+        "title": "Flow Visualizer: Show Request Flow",
+        "description": "Display request flow diagram",
+        "category": "Flow Visualizer",
+        "icon": "$(debug-step-over)"
+      },
+      {
+        "command": "flow-visualizer.export",
+        "title": "Flow Visualizer: Export Analysis",
+        "description": "Export analysis results as JSON",
+        "category": "Flow Visualizer",
+        "icon": "$(save)"
+      },
+      {
+        "command": "flow-visualizer.openDocs",
+        "title": "Flow Visualizer: Open Documentation",
+        "description": "Open generated documentation in browser",
+        "category": "Flow Visualizer",
+        "icon": "$(book)"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "flow-visualizer.analyzeFile",
+          "group": "7_modification",
+          "when": "resourceLangId =~ /^(typescript|javascript)$/"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "flow-visualizer.analyze",
+          "group": "navigation",
+          "when": "view == flow-visualizer.sidebar"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "flow-visualizer.analyze",
+          "when": "workbenchState == workspace"
+        },
+        {
+          "command": "flow-visualizer.showFlow",
+          "when": "workbenchState == workspace"
+        },
+        {
+          "command": "flow-visualizer.export",
+          "when": "workbenchState == workspace"
+        }
+      ]
+    },
+    "views": {
+      "explorer": [
+        {
+          "id": "flow-visualizer.sidebar",
+          "name": "Flow Visualizer",
+          "icon": "media/sidebar-icon.svg",
+          "contextualTitle": "Flow Visualizer"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Flow Visualizer",
+      "properties": {
+        "flowVisualizer.framework": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "express",
+            "nestjs",
+            "nextjs"
+          ],
+          "default": "auto",
+          "description": "Framework to analyze. Auto-detection is recommended."
+        },
+        "flowVisualizer.includeDatabase": {
+          "type": "boolean",
+          "default": true,
+          "description": "Include database query analysis in request flows"
+        },
+        "flowVisualizer.includeMiddleware": {
+          "type": "boolean",
+          "default": true,
+          "description": "Include middleware chain visualization in diagrams"
+        },
+        "flowVisualizer.includeServices": {
+          "type": "boolean",
+          "default": true,
+          "description": "Include service/business logic layer analysis"
+        },
+        "flowVisualizer.outputDirectory": {
+          "type": "string",
+          "default": ".flow-visualizer",
+          "description": "Output directory for generated documentation"
+        },
+        "flowVisualizer.excludePatterns": {
+          "type": "array",
+          "default": [
+            "node_modules",
+            "dist",
+            "build",
+            ".next",
+            ".nuxt"
+          ],
+          "description": "Patterns to exclude from analysis"
+        },
+        "flowVisualizer.autoOpenBrowser": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically open generated documentation in browser"
+        },
+        "flowVisualizer.maxDepth": {
+          "type": "number",
+          "default": 3,
+          "description": "Maximum directory depth to scan"
+        },
+        "flowVisualizer.theme": {
+          "type": "string",
+          "enum": [
+            "light",
+            "dark",
+            "auto"
+          ],
+          "default": "auto",
+          "description": "Theme for generated documentation"
+        }
+      }
+    },
+    "keybindings": [
+      {
+        "command": "flow-visualizer.analyze",
+        "key": "ctrl+shift+a",
+        "mac": "cmd+shift+a",
+        "when": "workbenchState == workspace"
+      },
+      {
+        "command": "flow-visualizer.showFlow",
+        "key": "ctrl+shift+f",
+        "mac": "cmd+shift+f",
+        "when": "workbenchState == workspace"
+      },
+      {
+        "command": "flow-visualizer.export",
+        "key": "ctrl+shift+e",
+        "mac": "cmd+shift+e",
+        "when": "workbenchState == workspace"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js",
+    "package": "vsce package",
+    "publish": "vsce publish",
+    "dev": "npm run compile && npm run watch",
+    "clean": "rm -rf out dist node_modules",
+    "rebuild": "npm run clean && npm install && npm run compile"
+  },
+  "devDependencies": {
+    "@types/glob": "^8.1.0",
+    "@types/node": "^20.8.0",
+    "@types/vscode": "^1.80.0",
+    "@typescript-eslint/eslint-plugin": "^6.7.0",
+    "@typescript-eslint/parser": "^6.7.0",
+    "@vscode/test-electron": "^2.3.5",
+    "eslint": "^8.48.0",
+    "typescript": "^5.2.0",
+    "vsce": "^2.15.0"
+  },
+  "dependencies": {
+    "ts-morph": "^20.0.0",
+    "glob": "^10.3.10",
+    "chalk": "^5.3.0",
+    "ora": "^8.0.1",
+    "commander": "^11.0.0",
+    "open": "^9.1.0"
+  }
+}
