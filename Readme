@@ -1,0 +1,348 @@
+# 🏗️ Flow Visualizer
+
+Automatically visualize API request flows, middleware chains, and architecture in **Express**, **NestJS**, and **Next.js** projects.
+
+![Flow Visualizer](https://img.shields.io/badge/Version-1.0.0-brightgreen)
+![License](https://img.shields.io/badge/License-MIT-blue)
+![Node](https://img.shields.io/badge/Node-16+-green)
+
+## ✨ Features
+
+- 🔍 **Automatic Code Analysis** - Scans your project and extracts routes, controllers, services, and middleware
+- 📊 **Interactive Diagrams** - Beautiful Mermaid diagrams showing architecture flows
+- 🎯 **Request Flow Visualization** - See exactly how requests travel through your app
+- 🔗 **Dependency Graphs** - Understand component relationships
+- 🛡️ **Middleware Chain** - Visualize all middleware in sequence
+- 💾 **Database Tracking** - Identify database queries and operations
+- 📱 **Framework Support** - Works with Express, NestJS, and Next.js
+- 🎨 **Dark Theme Dashboard** - Professional, easy-to-read documentation
+- ⚡ **VS Code Integration** - Native VS Code extension
+
+## 📦 Installation
+
+### As VS Code Extension
+
+1. Install from VS Code Marketplace (coming soon)
+2. Or install locally:
+   ```bash
+   git clone https://github.com/DhruvSingh7077/Api-request-visualizer.git
+   cd flow-visualizer
+   npm install
+   npm run compile
+   ```
+3. Press `F5` to run the extension in debug mode
+
+### As NPM Package
+
+```bash
+npm install flow-visualizer
+npx flow-visualizer analyze
+```
+
+## 🚀 Quick Start
+
+### VS Code Extension
+
+1. Open your project in VS Code
+2. Press `Ctrl+Shift+A` (or `Cmd+Shift+A` on Mac)
+3. Wait for analysis to complete
+4. View your architecture visualization automatically
+
+### Command Line
+
+```bash
+# Install globally
+npm install -g flow-visualizer
+
+# Analyze your project
+flow-visualizer analyze
+
+# Or specify options
+flow-visualizer analyze -p /path/to/project -o ./docs
+
+# Export results
+flow-visualizer export -f json -o analysis.json
+```
+
+## 🎯 Commands
+
+### Extension Commands
+
+| Command | Shortcut | Description |
+|---------|----------|-------------|
+| Analyze Project | `Ctrl+Shift+A` | Full analysis and documentation |
+| Show Request Flow | `Ctrl+Shift+F` | Display request flow diagram |
+| Export Analysis | `Ctrl+Shift+E` | Export results as JSON |
+| Show Overview | Menu | Architecture overview panel |
+| Open Docs | Menu | Open generated documentation |
+
+### CLI Commands
+
+```bash
+# Main analysis
+flow-visualizer analyze -p ./src -o ./docs
+
+# Initialize config
+flow-visualizer init
+
+# Serve with hot reload
+flow-visualizer serve -p ./docs
+
+# Export analysis
+flow-visualizer export -f json -o data.json
+
+# Validate project
+flow-visualizer validate -p ./src
+```
+
+## 📋 Options
+
+### analyze
+```bash
+-p, --path          Project path (default: current directory)
+-o, --output        Output directory (default: .flow-visualizer)
+-f, --framework     Framework (express, nestjs, nextjs, auto)
+-d, --database      Include database analysis (default: true)
+-m, --middleware    Include middleware visualization (default: true)
+-s, --services      Include service analysis (default: true)
+--no-open           Don't auto-open documentation
+```
+
+### export
+```bash
+-p, --path          Project path
+-f, --format        Format (json, yaml, csv, markdown)
+-o, --output        Output file path
+```
+
+## 🏗️ Project Structure
+
+```
+your-express-app/
+├── src/
+│   ├── routes/
+│   │   └── users.ts
+│   ├── controllers/
+│   │   └── userController.ts
+│   ├── services/
+│   │   └── userService.ts
+│   └── middleware/
+│       └── auth.ts
+└── package.json
+```
+
+**Generated Documentation:**
+```
+.flow-visualizer/
+├── index.html          # Main dashboard
+├── routes.html         # All routes
+├── services.html       # All services
+└── architecture.html   # Architecture diagrams
+```
+
+## 📊 What You Get
+
+### 1. Architecture Diagram
+Shows complete flow:
+```
+HTTP Requests → Router → Controllers → Services → Database
+                  ↓
+              Middleware
+```
+
+### 2. Request Flow
+Detailed path for a single request:
+```
+GET /users → AuthMiddleware → LogMiddleware → UserController → UserService → DB
+```
+
+### 3. Dependency Graph
+Component relationships and dependencies
+
+### 4. Middleware Chain
+Sequence of middleware applied to requests
+
+### 5. Service Interactions
+How services call each other
+
+### 6. Database Operations
+All database queries and operations
+
+## 🔧 Configuration
+
+Create `.api-flow-config.json`:
+
+```json
+{
+  "framework": "nestjs",
+  "include": {
+    "database": true,
+    "middleware": true,
+    "services": true
+  },
+  "output": "./api-flow-docs",
+  "exclude": ["node_modules", "dist", ".next"],
+  "autoOpenBrowser": true
+}
+```
+
+## 🛠️ Development
+
+### Clone and Setup
+
+```bash
+git clone https://github.com/DhruvSingh7077/Api-request-visualizer.git
+cd flow-visualizer
+npm install
+```
+
+### Development Mode
+
+```bash
+# Watch mode
+npm run dev
+
+# Compile
+npm run compile
+
+# Lint
+npm run lint
+```
+
+### Build for Production
+
+```bash
+npm run vscode:prepublish
+vsce package
+```
+
+## 📁 File Structure
+
+```
+flow-visualizer/
+├── src/
+│   ├── extension.ts                 # Main extension entry
+│   ├── analyzers/
+│   │   └── projectAnalyzer.ts       # Code analysis engine
+│   ├── diagram/
+│   │   └── diagramGenerator.ts      # Mermaid diagram creation
+│   ├── html/
+│   │   └── generateHTML.ts          # HTML documentation
+│   ├── validators/
+│   │   └── projectValidator.ts      # Project validation
+│   └── cli/
+│       └── index.ts                 # CLI entry point
+├── media/                           # Icons and images
+├── package.json
+├── tsconfig.json
+├── README.md
+└── .gitignore
+```
+
+## 🔍 Framework Support
+
+### Express.js
+- ✅ Routes (`app.get()`, `app.post()`, etc.)
+- ✅ Middleware
+- ✅ Controllers (if structured)
+- ✅ Services (if structured)
+
+### NestJS
+- ✅ Controllers (`@Controller`)
+- ✅ Routes (`@Get()`, `@Post()`, etc.)
+- ✅ Services (`@Injectable`)
+- ✅ Middleware and Guards
+- ✅ Dependencies injection
+
+### Next.js
+- ✅ API Routes (`pages/api`)
+- ✅ App Router (`app/` directory)
+- ✅ Server functions
+- ✅ Middleware
+
+## 📈 Statistics
+
+Each analysis provides:
+- Total routes detected
+- HTTP methods breakdown (GET, POST, PUT, DELETE, PATCH)
+- Controllers/handlers found
+- Services and dependencies
+- Middleware count
+- Database operations
+- Framework detection
+
+## 🎨 Output
+
+### Dashboard
+Beautiful dark-themed interactive HTML dashboard with:
+- Stats overview
+- Interactive Mermaid diagrams
+- Searchable routes table
+- Service listings
+- Responsive design
+
+### Export Formats
+- **JSON** - Complete analysis data
+- **Markdown** - Documentation format
+- **YAML** - Configuration format
+- **CSV** - Spreadsheet format
+
+## 🤝 Contributing
+
+Contributions welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 🐛 Troubleshooting
+
+### Analysis not detecting routes
+
+1. Ensure your project uses supported framework
+2. Check file naming conventions (Controllers, Services, etc.)
+3. Verify `package.json` has framework dependency
+4. Run with `--no-cache` flag
+
+### Diagrams not rendering
+
+1. Check internet connection (Mermaid loads from CDN)
+2. Try clearing browser cache
+3. Check browser console for errors
+
+### VS Code extension not activating
+
+1. Ensure extension is installed
+2. Open a workspace folder first
+3. Check output panel for errors
+4. Try reloading window (`Ctrl+R`)
+
+## 📝 License
+
+MIT License - see LICENSE file
+
+## 👤 Author
+
+**Dhruv Singh**
+- GitHub: [@DhruvSingh7077](https://github.com/DhruvSingh7077)
+- Email: dhruv@example.com
+
+## 🙏 Acknowledgments
+
+- [Mermaid](https://mermaid.js.org/) - Diagram generation
+- [ts-morph](https://github.com/dsherret/ts-morph) - TypeScript AST parsing
+- [Commander.js](https://github.com/tj/commander.js) - CLI framework
+
+## 📮 Support
+
+Found a bug? Have a feature request? [Open an issue](https://github.com/DhruvSingh7077/Api-request-visualizer/issues)
+
+## 🌟 Show Your Support
+
+Give a ⭐ if this project helped you!
+
+---
+
+**Happy visualizing! 🎉**
