@@ -209,9 +209,6 @@ export class ErrorHandler {
     if (message.includes('network') || message.includes('econnrefused')) {
       return ErrorCodes.NETWORK_ERROR;
     }
-    if (message.includes('database') || message.includes('database error')) {
-      return ErrorCodes.DATABASE_ERROR;
-    }
 
     return ErrorCodes.UNKNOWN_ERROR;
   }
