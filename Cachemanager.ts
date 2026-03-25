@@ -1,5 +1,5 @@
 /**
- * Caching system to improve performance
+ * Advanced Cache Manager (LRU + TTL + Persistent + Async सुरक्षित)
  */
 
 import * as fs from 'fs';
@@ -10,17 +10,28 @@ export interface CacheEntry<T> {
   key: string;
   value: T;
   timestamp: number;
-  ttl: number; // time to live in milliseconds
+  ttl: number;
 }
 
 export class CacheManager {
   private cache: Map<string, CacheEntry<any>> = new Map();
   private cacheDir: string;
   private persistentCache: boolean;
+  private maxSize: number;
 
-  constructor(cacheDir: string = '.flow-visualizer-cache', persistent: boolean = true) {
+  private hits = 0;
+  private misses = 0;
+
+  constructor(
+    cacheDir: string = '.flow-visualizer-cache',
+    persistent: boolean = true,
+    maxSize: number = 1000,
+    private serializer: (data: any) => string = JSON.stringify,
+    private deserializer: (data: string) => any = JSON.parse
+  ) {
     this.cacheDir = cacheDir;
     this.persistentCache = persistent;
+    this.maxSize = maxSize;
 
     if (persistent && !fs.existsSync(cacheDir)) {
       fs.mkdirSync(cacheDir, { recursive: true });
@@ -30,9 +41,21 @@ export class CacheManager {
     if (persistent) {
       this.loadFromDisk();
     }
+
+    // Auto cleanup every 1 min
+    setInterval(() => {
+      this.cleanup();
+    }, 60000);
   }
 
-  set<T>(key: string, value: T, ttlMs: number = 3600000): void {
+  // ---------------- SET ----------------
+  async set<T>(key: string, value: T, ttlMs: number = 3600000): Promise<void> {
+    // LRU eviction
+    if (this.cache.size >= this.maxSize) {
+      const oldestKey = this.cache.keys().next().value;
+      await this.delete(oldestKey);
+    }
+
     const entry: CacheEntry<T> = {
       key,
       value,
@@ -44,34 +67,41 @@ export class CacheManager {
     logger.debug(`Cache set: ${key}`);
 
     if (this.persistentCache) {
-      this.saveToDisk(key, entry);
+      await this.saveToDisk(key, entry);
     }
   }
 
+  // ---------------- GET ----------------
   get<T>(key: string): T | undefined {
     const entry = this.cache.get(key);
 
     if (!entry) {
+      this.misses++;
       return undefined;
     }
 
-    // Check if expired
-    const now = Date.now();
-    if (now - entry.timestamp > entry.ttl) {
+    if (this.isExpired(entry)) {
       this.delete(key);
+      this.misses++;
       return undefined;
     }
 
+    // LRU update
+    this.cache.delete(key);
+    this.cache.set(key, entry);
+
+    this.hits++;
     logger.debug(`Cache hit: ${key}`);
+
     return entry.value as T;
   }
 
+  // ---------------- HAS ----------------
   has(key: string): boolean {
     const entry = this.cache.get(key);
     if (!entry) return false;
 
-    const now = Date.now();
-    if (now - entry.timestamp > entry.ttl) {
+    if (this.isExpired(entry)) {
       this.delete(key);
       return false;
     }
@@ -79,32 +109,130 @@ export class CacheManager {
     return true;
   }
 
-  delete(key: string): boolean {
+  // ---------------- DELETE ----------------
+  async delete(key: string): Promise<boolean> {
     const deleted = this.cache.delete(key);
     logger.debug(`Cache deleted: ${key}`, { success: deleted });
 
     if (this.persistentCache && deleted) {
       const cacheFile = path.join(this.cacheDir, `${this.sanitizeKey(key)}.json`);
-      if (fs.existsSync(cacheFile)) {
-        fs.unlinkSync(cacheFile);
-      }
+      try {
+        await fs.promises.unlink(cacheFile);
+      } catch (_) {}
     }
 
     return deleted;
   }
 
-  clear(): void {
+  // ---------------- CLEAR ----------------
+  async clear(): Promise<void> {
     this.cache.clear();
     logger.info('Cache cleared');
 
     if (this.persistentCache) {
-      const files = fs.readdirSync(this.cacheDir);
-      files.forEach((file) => {
-        fs.unlinkSync(path.join(this.cacheDir, file));
-      });
+      const files = await fs.promises.readdir(this.cacheDir);
+      await Promise.all(
+        files.map(file =>
+          fs.promises.unlink(path.join(this.cacheDir, file))
+        )
+      );
     }
   }
 
+  // ---------------- HELPERS ----------------
+  private isExpired(entry: CacheEntry<any>): boolean {
+    return Date.now() - entry.timestamp > entry.ttl;
+  }
+
+  private sanitizeKey(key: string): string {
+    return key.replace(/[^a-zA-Z0-9_-]/g, '_');
+  }
+
+  // ---------------- DISK OPS ----------------
+  private async saveToDisk(key: string, entry: CacheEntry<any>): Promise<void> {
+    try {
+      const filename = `${this.sanitizeKey(key)}.json`;
+      const filepath = path.join(this.cacheDir, filename);
+      await fs.promises.writeFile(filepath, this.serializer(entry));
+      logger.debug(`Cache persisted: ${filename}`);
+    } catch (error) {
+      logger.warn('Failed to persist cache', error);
+    }
+  }
+
+  private loadFromDisk(): void {
+    try {
+      if (!fs.existsSync(this.cacheDir)) return;
+
+      const files = fs.readdirSync(this.cacheDir);
+      let loadedCount = 0;
+
+      files.forEach(file => {
+        if (file.endsWith('.json')) {
+          try {
+            const filepath = path.join(this.cacheDir, file);
+            const content = fs.readFileSync(filepath, 'utf-8');
+            const entry = this.deserializer(content) as CacheEntry<any>;
+
+            if (!this.isExpired(entry)) {
+              this.cache.set(entry.key, entry);
+              loadedCount++;
+            } else {
+              fs.unlinkSync(filepath);
+            }
+          } catch (err) {
+            logger.debug(`Failed to load ${file}`, err);
+          }
+        }
+      });
+
+      logger.debug(`Loaded ${loadedCount} cache entries`);
+    } catch (error) {
+      logger.warn('Failed loading cache', error);
+    }
+  }
+
+  // ---------------- STATS ----------------
+  getStats() {
+    let diskUsage = 0;
+
+    if (this.persistentCache && fs.existsSync(this.cacheDir)) {
+      const files = fs.readdirSync(this.cacheDir);
+      files.forEach(file => {
+        const stats = fs.statSync(path.join(this.cacheDir, file));
+        diskUsage += stats.size;
+      });
+    }
+
+    return {
+      size: this.cache.size,
+      keys: Array.from(this.cache.keys()),
+      diskUsage,
+      hits: this.hits,
+      misses: this.misses,
+      hitRate:
+        this.hits + this.misses === 0
+          ? 0
+          : this.hits / (this.hits + this.misses),
+    };
+  }
+
+  // ---------------- CLEANUP ----------------
+  cleanup(): void {
+    const now = Date.now();
+    let removed = 0;
+
+    for (const [key, entry] of this.cache.entries()) {
+      if (now - entry.timestamp > entry.ttl) {
+        this.cache.delete(key);
+        removed++;
+      }
+    }
+
+    logger.debug(`Cleanup removed ${removed} expired items`);
+  }
+
+  // ---------------- UTILS ----------------
   getSize(): number {
     return this.cache.size;
   }
@@ -112,99 +240,13 @@ export class CacheManager {
   getKeys(): string[] {
     return Array.from(this.cache.keys());
   }
-
-  private sanitizeKey(key: string): string {
-    return key.replace(/[^a-zA-Z0-9_-]/g, '_');
-  }
-
-  private saveToDisk(key: string, entry: CacheEntry<any>): void {
-    try {
-      const filename = `${this.sanitizeKey(key)}.json`;
-      const filepath = path.join(this.cacheDir, filename);
-      fs.writeFileSync(filepath, JSON.stringify(entry, null, 2));
-      logger.debug(`Cache persisted to disk: ${filename}`);
-    } catch (error) {
-      logger.warn('Failed to persist cache to disk', error);
-    }
-  }
-
-  private loadFromDisk(): void {
-    try {
-      if (!fs.existsSync(this.cacheDir)) {
-        return;
-      }
-
-      const files = fs.readdirSync(this.cacheDir);
-      let loadedCount = 0;
-
-      files.forEach((file) => {
-        if (file.endsWith('.json')) {
-          try {
-            const filepath = path.join(this.cacheDir, file);
-            const content = fs.readFileSync(filepath, 'utf-8');
-            const entry = JSON.parse(content) as CacheEntry<any>;
-
-            // Check if expired
-            const now = Date.now();
-            if (now - entry.timestamp <= entry.ttl) {
-              this.cache.set(entry.key, entry);
-              loadedCount++;
-            } else {
-              fs.unlinkSync(filepath);
-            }
-          } catch (error) {
-            logger.debug(`Failed to load cache file: ${file}`, error);
-          }
-        }
-      });
-
-      logger.debug(`Loaded ${loadedCount} items from disk cache`);
-    } catch (error) {
-      logger.warn('Failed to load cache from disk', error);
-    }
-  }
-
-  getStats(): {
-    size: number;
-    keys: string[];
-    diskUsage: number;
-  } {
-    let diskUsage = 0;
-
-    if (this.persistentCache && fs.existsSync(this.cacheDir)) {
-      const files = fs.readdirSync(this.cacheDir);
-      files.forEach((file) => {
-        const filepath = path.join(this.cacheDir, file);
-        const stats = fs.statSync(filepath);
-        diskUsage += stats.size;
-      });
-    }
-
-    return {
-      size: this.cache.size,
-      keys: this.getKeys(),
-      diskUsage,
-    };
-  }
-
-  cleanup(): void {
-    const now = Date.now();
-    let removedCount = 0;
-
-    this.cache.forEach((entry, key) => {
-      if (now - entry.timestamp > entry.ttl) {
-        this.delete(key);
-        removedCount++;
-      }
-    });
-
-    logger.debug(`Cache cleanup completed: ${removedCount} expired items removed`);
-  }
 }
 
+// Factory
 export const createCacheManager = (
   cacheDir?: string,
-  persistent?: boolean
+  persistent?: boolean,
+  maxSize?: number
 ): CacheManager => {
-  return new CacheManager(cacheDir, persistent);
+  return new CacheManager(cacheDir, persistent, maxSize);
 };
